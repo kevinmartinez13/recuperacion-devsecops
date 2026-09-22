@@ -1,0 +1,56 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 1. Auditoría de dependencias Node.js
+      - name: Ejecutar npm audit
+        run: npm audit --audit-level=high
+
+      # 2. Construcción de la imagen Docker
+      - name: Construir imagen Docker
+        run: docker build -t api-fortaleza-nube:${{ github.sha }} .
+
+      # 3. Escaneo de la imagen Docker con Trivy (falla si encuentra vulnerabilidades HIGH o CRITICAL)
+      - name: Escanear imagen con Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'api-fortaleza-nube:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  deploy:
+    needs: security-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Despliegue en AWS EC2 por SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/app || mkdir -p ~/app
+            # Aquí irán los comandos para actualizar los contenedores en EC2
+            echo "Despliegue ejecutado con éxito"
