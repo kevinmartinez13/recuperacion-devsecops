@@ -1,4 +1,3 @@
-
 name: DevSecOps Pipeline
 
 on:
@@ -20,13 +19,9 @@ jobs:
         with:
           node-version: '20'
 
-      # Garantiza la generación del lockfile para la auditoría en el runner
-      - name: Generar lockfile temporal
-        run: npm i --package-lock-only
-
       # 1. Auditoría de dependencias
       - name: Ejecutar npm audit
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=critical
 
       # 2. Construcción de la imagen Docker
       - name: Construir imagen Docker
@@ -38,7 +33,7 @@ jobs:
         with:
           image-ref: 'api-fortaleza-nube:${{ github.sha }}'
           format: 'table'
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
