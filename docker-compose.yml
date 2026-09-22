@@ -1,0 +1,43 @@
+version: '3.8'
+
+networks:
+  red-interna:
+    driver: bridge
+
+services:
+  # 1. API Node.js de la Fase 1
+  api-node:
+    build: .
+    container_name: api-node-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - red-interna
+
+  # 2. Servidor de Monitoreo Uptime Kuma
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma-service
+    restart: always
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime-kuma-data:/app/data
+    networks:
+      - red-interna
+
+  # 3. Visor de Logs Dozzle
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle-service
+    restart: unless-stopped
+    ports:
+      - "8888:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - red-interna
+
+volumes:
+  uptime-kuma-data:
